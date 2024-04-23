@@ -54,6 +54,35 @@ def hyperplane(params):
         return result
     return inner
 
+def correlation(data1,data2):
+    n = len(data1)
+    mu1 = np.mean(data1)
+    mu2 = np.mean(data2)
+    var1 = 0
+    var2 = 0
+    cov = 0
+    for i in range(n):
+        d1 = data1[i]-mu1
+        d2 = data2[i]-mu2
+        var1 += d1*d1
+        var2 += d2*d2
+        cov += d1*d2
+    return cov/(np.sqrt(var1*var2))
+
+def r_squared(data, *, verbose=False):
+    # Compute coefficient of multiple correlation
+    # Not the fastest way to do it because there are redundant calculations
+    # but it works and is fast enough for this small problem
+    k = data.shape[1]-1
+    R = np.array([[correlation(data[:,i],data[:,j]) for i in range(k)] for j in range(k)])
+    c = np.array([correlation(data[:,i],data[:,-1]) for i in range(k)])
+    if verbose:
+        print("Correl. matrix R: ")
+        print(R)
+        print("Correl. vector c: ")
+        print(c)
+    return np.matmul(np.matmul(np.transpose(c),np.linalg.inv(R)),c)
+
 if __name__ == "__main__":
     # find or generate data
     from os.path import exists
@@ -64,7 +93,10 @@ if __name__ == "__main__":
         df = pd.DataFrame(data)
         df.to_csv(pathname, header=False, index=False)
     data = data[1:,:].astype(np.float64)
-    result = leastsquares(data,verbose=True)
+    # call least squares and correlation functions
+    result = leastsquares(data, verbose=True)
+    rsq = r_squared(data, verbose=True)
+    print(f"r^2 = {rsq}")
     # 3d scatter plot and plane
     fig = plt.figure()
     ax = fig.add_subplot(projection="3d")
